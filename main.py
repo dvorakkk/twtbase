@@ -1,28 +1,40 @@
+import sys, os
 import tweepy
 import re
 import config
 import time
 import requests
 import random
+import PIL
 from datetime import timezone, timedelta
 from requests_oauthlib import OAuth1
+from PIL import Image, ImageDraw, ImageFont
 import logging
 import os.path
 import html
 
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 logfile = os.path.join(BASE_DIR, 'test.log')
+
 
 logging.basicConfig(
     filename=logfile,
     level=logging.INFO,
     format="%(asctime)s:%(levelname)s:%(message)s"
     )
+class wmark:
+  caption = 'jawafess'
+  img = Image.open('temp2.jpg')
+  d = ImageDraw.Draw(img)
+  font = ImageFont.truetype('upakarti.ttf', size=40)
+  d.text((60, 60), caption, fill='green', font=font, spacing=3, align='center', stroke_width=3, stroke_fill='white')
+  img.save('temp2.jpg')
 
 class TwitterBot:
 
   # initialization
-  def __init__(self, checked = 0, posted = 0, notsent = 0, dms = 0):
+  def __init__(self, checked = 0, posted = 0, notsent = 0, dms = 0, wmark = 0):
     self.auth = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
     self.auth.set_access_token(config.access_token, config.access_token_secret)
     self.api = tweepy.API(self.auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
@@ -31,6 +43,9 @@ class TwitterBot:
     self.checked = checked #number of dm checked
     self.notsent = notsent #number of incoming dm not sent
     self.dms = dms
+    self.watermark = wmark
+
+
 
   def checkdm(self):
     api = self.api
@@ -145,9 +160,9 @@ class TwitterBot:
     api = self.api
     url = 'https://twitter.com/'+self.me.screen_name+'/status/'+str(postid)
     if status == 'sent':
-      message = {'sent': 'Post was successfully sent at '+rttime.astimezone(timezone(timedelta(hours=config.timezone))).strftime("%Y-%m-%d %H:%M")+' WIB. Check your post here: '+url}
+      message = {'sent': 'Asek tweetmu wes dikirim lur, monggo dipun pirsani '+rttime.astimezone(timezone(timedelta(hours=config.timezone))).strftime("%Y-%m-%d %H:%M")+' WIB.'+url}
     elif status == 'notsent':
-      message = {'notsent' : 'Post was not sent. Use the trigger '+config.trigger+' to send post.'}
+      message = {'notsent' : 'sepurane durung kekirim lur, nganggo '+config.trigger+' ben kekirim.'}
     else: message = {'wrong attachment' : 'Post was not sent. Send only picture attachment (not gif/video).'}
 
     notifdm = api.send_direct_message(recipient_id=dmsender, text=message[status])
@@ -157,20 +172,21 @@ class TwitterBot:
     
     return
 
-  
   def tweet_attachment(self, media_url):
     api = self.api
-    oauth = OAuth1(client_key = config.consumer_key, client_secret = config.consumer_secret, resource_owner_key = config.access_token, resource_owner_secret = config.access_token_secret)
-    r = requests.get(media_url, auth = oauth)
-    filename = 'temp.jpg'
+    oauth = OAuth1(client_key=config.consumer_key, client_secret=config.consumer_secret,
+                   resource_owner_key=config.access_token, resource_owner_secret=config.access_token_secret)
+    r = requests.get(media_url, auth=oauth)
+    filename = 'temp2.jpg'
+    yuhu = 'temp3.jpg'
     if r.status_code == 200:
       with open(filename, 'wb') as image:
         for chunk in r:
           image.write(chunk)
-      media_ids = api.media_upload(filename).media_id
-    return media_ids
+      exec(open("mark.py").read())
+      media_ids = api.media_upload(yuhu).media_id
+      return media_ids
 
-  
   def delete_dm(self, dms):
     api = self.api
     for dm in dms:
@@ -201,3 +217,5 @@ class TwitterBot:
   
   def __repr__(self):
     return f"DM counts: {self.checked}, DM posted: {self.posted}, DM not sent: {self.notsent}"
+
+
